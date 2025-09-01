@@ -1,0 +1,37 @@
+<?xml version="1.0"?>
+<addon scheme="3.0">
+    <id>ds_iris</id>
+    <name>Πληρωμές μέσω IRIS</name>
+    <description></description>
+    <version>1.0</version>
+    <priority>19000</priority>
+    <position>2200</position>
+    <supplier>Dataspot</supplier>
+    <supplier_link>https://www.dataspot.gr</supplier_link>
+
+    <settings edition_type="ROOT,ULT:VENDOR">
+        <sections>
+            <section id="general">
+                <items>
+                    <item id="username">
+                        <name>Username</name> 
+                        <type>input</type>
+                    </item>
+                    <item id="password">
+                        <name>Password</name>
+                        <type>input</type>
+                    </item>
+                    <item id="payment_id">
+                        <name>Δημιουργήστε έναν καινούριο τρόπο πληρωμής και συμπληρώστε το ID</name>
+                        <type>input</type>
+                    </item>
+                    <item id="debug_mode">
+                        <name>Ενεργοποίηση Λειτουργίας Debug</name>
+                        <type>checkbox</type>
+                        <default_value>N</default_value>
+                    </item>
+                </items>
+            </section>
+        </sections>
+    </settings>
+</addon>
