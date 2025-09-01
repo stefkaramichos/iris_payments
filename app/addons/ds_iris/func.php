@@ -1,16 +1,14 @@
 <?php
-
 use Tygh\Registry;
-
-
 if (!defined('BOOTSTRAP')) { die('Access denied'); }
+
+
+
 function fn_ds_iris_place_order(&$order_id, &$action, &$order_status, &$cart, &$auth)
 {
     if (empty($order_id)) {
         return;
     }
-
-    $debug_mode = Registry::get('addons.ds_iris.debug_mode');
 
     $order_info = fn_get_order_info($order_id);
     $payment_id = Registry::get('addons.ds_iris.payment_id');
@@ -40,7 +38,10 @@ function fn_ds_iris_place_order(&$order_id, &$action, &$order_status, &$cart, &$
         "messageId"                => $message_id,
         "creationDateTime"         => $creation_date,
         "initiatingPartyRefId"     => $initiating_ref,
+        // IMPORTANT: return to iris_return so we can verify status first
         "initiatingPartyReturnURL" => fn_url("index.php?dispatch=iris.iris_return&order_id={$order_id}", 'C'),
+        // If IRIS expects cents as integer, keep *100 and no decimals; if not, use the rounded decimal.
+        // Below assumes IRIS expects amount as string of decimal units (e.g., "30.00"). Adjust if needed.
         "instructedAmount"         => (string) round($order_info['total'] * 100, 2),
         "currency"                 => $currency,
         "remmittanceInfo"          => [
@@ -51,11 +52,10 @@ function fn_ds_iris_place_order(&$order_id, &$action, &$order_status, &$cart, &$
         "initiationChannel"        => "1"
     ];
 
-
-    if ($debug_mode === 'Y') {
-        // Log request payload
-        error_log("IRIS Request Payload for order #{$order_id}: " . json_encode($payload));
-    }
+    // Log request (mask password)
+    $log_payload = $payload;
+    $log_payload['password'] = str_repeat('*', 8);
+    error_log("IRIS Request Payload for order #{$order_id}: " . json_encode($log_payload));
 
     // Step 3: Send request
     $ch = curl_init($request_url);
@@ -72,29 +72,36 @@ function fn_ds_iris_place_order(&$order_id, &$action, &$order_status, &$cart, &$
     $http_code  = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
 
-    if ($debug_mode === 'Y') {
-        // Log raw response + HTTP status
-        error_log("IRIS Raw Response for order #{$order_id}: HTTP {$http_code} - {$response}");
-    }
-
+    // Log raw response + HTTP status
+    error_log("IRIS Raw Response for order #{$order_id}: HTTP {$http_code} - {$response}");
     if (!empty($curl_error)) {
         error_log("IRIS cURL Error for order #{$order_id}: " . $curl_error);
     }
 
     // Step 4: Handle response
     if ($http_code == 200 && !empty($response)) {
-        $result = json_decode($response, true);
+        $result   = json_decode($response, true);
         $bank_url = isset($result['resp']['bankSelectionToolUrl']) ? $result['resp']['bankSelectionToolUrl'] : null;
 
-        if ($debug_mode === 'Y') {
-                // Log parsed response
-                error_log("IRIS Parsed Response for order #{$order_id}: " . print_r($result, true));
-        }
+        // Log parsed response
+        error_log("IRIS Parsed Response for order #{$order_id}: " . print_r($result, true));
 
+        // Persist identifiers for status query on return
+        $iris_order_id      = isset($result['resp']['orderId']) ? $result['resp']['orderId'] : null;
+        $iris_message_id    = isset($result['messageId']) ? $result['messageId'] : $message_id;
+        $iris_created_at    = isset($result['creationDateTime']) ? $result['creationDateTime'] : $creation_date;
+
+        $payment_info = [
+            'iris_order_id'        => $iris_order_id,
+            'iris_message_id'      => $iris_message_id,
+            'iris_creation_dt'     => $iris_created_at,
+            'iris_initiating_ref'  => $initiating_ref,
+            'iris_return_url'      => "index.php?dispatch=iris.iris_return&order_id={$order_id}",
+        ];
+        fn_update_order_payment_info($order_id, $payment_info);
 
         if (!empty($bank_url)) {
             error_log("IRIS Redirect for order #{$order_id} -> {$bank_url}");
-            // Redirect to bank selection tool
             fn_redirect($bank_url, true);
         } else {
             error_log("IRIS Missing bankSelectionToolUrl for order #{$order_id}");
@@ -104,4 +111,3 @@ function fn_ds_iris_place_order(&$order_id, &$action, &$order_status, &$cart, &$
         fn_set_notification('E', __('error'), __('iris_payment_error_connection'));
     }
 }
-
