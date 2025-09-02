@@ -9,6 +9,7 @@ function fn_ds_iris_place_order(&$order_id, &$action, &$order_status, &$cart, &$
     if (empty($order_id)) {
         return;
     }
+    $debug_mode = Registry::get('addons.ds_iris.debug_mode');
 
     $order_info = fn_get_order_info($order_id);
     $payment_id = Registry::get('addons.ds_iris.payment_id');
@@ -55,8 +56,10 @@ function fn_ds_iris_place_order(&$order_id, &$action, &$order_status, &$cart, &$
     // Log request (mask password)
     $log_payload = $payload;
     $log_payload['password'] = str_repeat('*', 8);
-    error_log("IRIS Request Payload for order #{$order_id}: " . json_encode($log_payload));
 
+    if ($debug_mode === 'Y') {
+        error_log("IRIS Request Payload for order #{$order_id}: " . json_encode($log_payload));
+    }
     // Step 3: Send request
     $ch = curl_init($request_url);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -72,8 +75,10 @@ function fn_ds_iris_place_order(&$order_id, &$action, &$order_status, &$cart, &$
     $http_code  = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
 
-    // Log raw response + HTTP status
-    error_log("IRIS Raw Response for order #{$order_id}: HTTP {$http_code} - {$response}");
+    if ($debug_mode === 'Y') {
+        // Log raw response + HTTP status
+        error_log("IRIS Raw Response for order #{$order_id}: HTTP {$http_code} - {$response}");
+    }
     if (!empty($curl_error)) {
         error_log("IRIS cURL Error for order #{$order_id}: " . $curl_error);
     }
@@ -83,8 +88,10 @@ function fn_ds_iris_place_order(&$order_id, &$action, &$order_status, &$cart, &$
         $result   = json_decode($response, true);
         $bank_url = isset($result['resp']['bankSelectionToolUrl']) ? $result['resp']['bankSelectionToolUrl'] : null;
 
-        // Log parsed response
-        error_log("IRIS Parsed Response for order #{$order_id}: " . print_r($result, true));
+        if ($debug_mode === 'Y') {
+            // Log parsed response
+            error_log("IRIS Parsed Response for order #{$order_id}: " . print_r($result, true));
+        }
 
         // Persist identifiers for status query on return
         $iris_order_id      = isset($result['resp']['orderId']) ? $result['resp']['orderId'] : null;

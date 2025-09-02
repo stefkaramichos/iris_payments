@@ -42,7 +42,10 @@ if ($mode === 'iris_return') {
     // Log request (mask password)
     $log_payload = $payload;
     $log_payload['password'] = str_repeat('*', 8);
-    error_log("IRIS Status Request for order #{$order_id}: " . json_encode($log_payload));
+     
+    if ($debug_mode === 'Y') {
+        error_log("IRIS Status Request for order #{$order_id}: " . json_encode($log_payload));
+    }
 
     // Request status
     $ch = curl_init($status_url);
@@ -57,8 +60,11 @@ if ($mode === 'iris_return') {
     $curl_error = curl_error($ch);
     $http_code  = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
-
-    error_log("IRIS Status Raw Response for order #{$order_id}: HTTP {$http_code} - {$response}");
+ 
+    if ($debug_mode === 'Y') {
+        error_log("IRIS Status Raw Response for order #{$order_id}: HTTP {$http_code} - {$response}");
+    }
+ 
     if (!empty($curl_error)) {
         error_log("IRIS Status cURL Error for order #{$order_id}: " . $curl_error);
     }
@@ -66,7 +72,9 @@ if ($mode === 'iris_return') {
     $eligible = false;
     if ($http_code == 200 && !empty($response)) {
         $result = json_decode($response, true);
-        error_log("IRIS Status Parsed Response for order #{$order_id}: " . print_r($result, true));
+        if ($debug_mode === 'Y') {
+            error_log("IRIS Status Parsed Response for order #{$order_id}: " . print_r($result, true));
+        }
 
         $status = isset($result['resp']['txStatus']) ? $result['resp']['txStatus'] : '';
         // Only mark 'O' if IRIS says TRANSACTION_CREATED
@@ -82,7 +90,9 @@ if ($mode === 'iris_return') {
     if ($eligible) {
         // Change status to 'O'
         fn_change_order_status($order_id, 'O');
-        error_log("IRIS Order #{$order_id} status changed to O after verification.");
+        if ($debug_mode === 'Y') {
+            error_log("IRIS Order #{$order_id} status changed to O after verification.");
+        }
         return [CONTROLLER_STATUS_REDIRECT, "checkout.complete&order_id={$order_id}"];
     }
 

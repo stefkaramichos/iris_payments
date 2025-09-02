@@ -1,0 +1,25 @@
+msgid ""
+msgstr "Project-Id-Version: tygh\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Language-Team: Greek\n"
+"Language: el_GR"
+
+msgctxt "Languages::iris_order_id"
+msgid "iris_order_id"
+msgstr "orderId"
+
+msgctxt "Languages::iris_message_id"
+msgid "iris_message_id"
+msgstr "messageId"
+
+msgctxt "Languages::iris_creation_dt"
+msgid "iris_creation_dt"
+msgstr "creationDateTime"
+
+msgctxt "Languages::iris_initiating_ref"
+msgid "initiatingRef"
+msgstr "initiatingRef"
+
+msgctxt "Languages::iris_return_url"
+msgid "iris_return_url"
+msgstr "returnUrl"
