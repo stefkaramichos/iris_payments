@@ -9,6 +9,11 @@ function fn_ds_iris_place_order(&$order_id, &$action, &$order_status, &$cart, &$
     if (empty($order_id)) {
         return;
     }
+
+    if (defined('AREA') && AREA === 'A') {
+        return;
+    }
+
     $debug_mode = Registry::get('addons.ds_iris.debug_mode');
 
     $order_info = fn_get_order_info($order_id);
